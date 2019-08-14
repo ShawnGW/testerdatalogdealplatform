@@ -1,0 +1,66 @@
+server:
+  port: 10013
+info:
+  name: shawn
+  server:
+    port: ${server.port}
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: ["*"]
+spring:
+  application:
+    name: tester-data-deal-platform
+  redis:
+    sentinel:
+      master: mymaster
+      nodes: 192.168.10.234:26379,192.168.10.234:26380,192.168.10.234:26381
+    password: VtestAdmin!234
+    lettuce:
+      pool:
+        min-idle: 0
+        max-active: 16
+        max-idle: 8
+        max-wait: -1
+  datasource:
+    druid:
+      stat-view-servlet:
+        enabled: true
+        login-username: admin
+        login-password: admin123#
+        url-pattern: /druid/*
+        allow: 192.168.8.85
+      web-stat-filter:
+        exclusions: /druid/*,*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico
+        url-pattern: /*
+        enabled: true
+      username: EDATESTER
+      password: VTest888!
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      url: jdbc:sqlserver://VTSQLDB01;database=WebMES
+      test-on-return: false
+      test-while-idle: true
+      test-on-borrow: false
+      max-wait: 60000
+      min-idle: 2
+      max-active: 40
+      initial-size: 1
+      pool-prepared-statements: true
+      max-open-prepared-statements: 30
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 30000
+system:
+  properties:
+    datalog:
+      m7000: /server212/Datalog/TempData/M7000
+      j750: /server212/Datalog/TempData/J750
+      v50: /server212/Datalog/TempData/V50
+      chroma: /server212/Datalog/TempData/Chroma
+      v93000: /server212/Datalog/TempData/V93000
+      t862: /server212/Datalog/TempData/T862
+      error-path: /server212/Datalog/ErrorData
+      backup-path: /server212/Datalog/TesterData
