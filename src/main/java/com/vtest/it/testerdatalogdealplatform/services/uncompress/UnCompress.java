@@ -1,8 +1,5 @@
 package com.vtest.it.testerdatalogdealplatform.services.uncompress;
 
-import com.vtest.it.testerdatalogdealplatform.services.tools.PerfectCopy;
-import org.apache.commons.io.FileUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -11,35 +8,49 @@ import java.util.zip.ZipInputStream;
 
 @Service
 public class UnCompress {
-    @Autowired
-    private PerfectCopy perfectCopy;
-    public void deal(File zipfile, String directory, String fileName) throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(zipfile);
+    public boolean unCompressFile(File source) throws IOException {
+        boolean unCompressFlag = false;
+        FileInputStream fileInputStream = new FileInputStream(source);
         ZipInputStream zipInputStream = new ZipInputStream(fileInputStream);
         BufferedInputStream bufferedInputStream = new BufferedInputStream(zipInputStream);
-        ZipEntry zipEntry = null;
-        File unzipfile = new File(zipfile.getParent() + "/" + fileName);
+        ZipEntry entry = null;
         try {
-            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                File unzipfile = new File(source.getParent() + "/" + entry.getName());
                 FileOutputStream fileOutputStream = new FileOutputStream(unzipfile);
                 BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-                int b;
-                while ((b = bufferedInputStream.read()) != -1) {
-                    bufferedOutputStream.write(b);
+                int b = 0;
+                boolean flag = false;
+                try {
+                    while ((b = bufferedInputStream.read()) != -1) {
+                        bufferedOutputStream.write(b);
+                    }
+                } catch (IOException e) {
+                    unCompressFlag = true;
+                    flag = true;
                 }
                 bufferedOutputStream.flush();
                 bufferedOutputStream.close();
+                if (flag) {
+                    unzipfile.delete();
+                }
             }
-            File directoryFile = new File(directory);
-            if (!directoryFile.exists()) {
-                directoryFile.mkdirs();
-            }
-            perfectCopy.copy(unzipfile,new File(directory+"/"+unzipfile.getName()));
-            FileUtils.forceDelete(unzipfile);
-        } catch (Exception e) {
-            FileUtils.forceDelete(unzipfile);
-        } finally {
             bufferedInputStream.close();
+            zipInputStream.close();
+            fileInputStream.close();
+        } catch (IOException e) {
+            unCompressFlag = true;
+        } finally {
+            if (null != bufferedInputStream) {
+                bufferedInputStream.close();
+            }
+            if (null != zipInputStream) {
+                zipInputStream.close();
+            }
+            if (null != fileInputStream) {
+                fileInputStream.close();
+            }
         }
+        return unCompressFlag;
     }
 }
