@@ -64,3 +64,4 @@ system:
       t862: /server212/Datalog/TempData/T862
       error-path: /server212/Datalog/ErrorData
       backup-path: /server212/Datalog/TesterData
+      stdf-to-text-path: /stdfTxt

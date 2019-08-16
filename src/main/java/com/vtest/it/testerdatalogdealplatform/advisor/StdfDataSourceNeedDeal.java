@@ -21,8 +21,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 @Aspect
 @Component
@@ -72,22 +72,21 @@ public class StdfDataSourceNeedDeal {
 
     @Around("execution(* com.vtest.it.testerdatalogdealplatform.deal.Deal.datalogDeal(..))")
     public void backupAndGetNeedDealSources(ProceedingJoinPoint proceedingJoinPoint) {
-        Set<String> pathNeedDeal = new HashSet<>();
+        Map<String, String> pathNeedDealmap = new HashMap<>();
         unCompressZipFiles(m7000);
         unCompressZipFiles(chroma);
         unCompressZipFiles(t862);
         unCompressZipFiles(v50);
         unCompressZipFiles(v93000);
         unCompressZipFiles(j750);
-        dataSourceDeal(m7000, m7000DatalogParser, pathNeedDeal, true);
-        dataSourceDeal(chroma, chromaDatalogParser, pathNeedDeal, true);
-        dataSourceDeal(t862, t862DatalogParser, pathNeedDeal, true);
-        dataSourceDeal(v50, v50DatalogParser, pathNeedDeal, true);
-        dataSourceDeal(v93000, v9300DatalogParser, pathNeedDeal, true);
-        dataSourceDeal(j750, j750DatalogParser, pathNeedDeal, true);
-        System.out.println(pathNeedDeal.size());
+        dataSourceDeal(m7000, m7000DatalogParser, pathNeedDealmap, true, "m7000");
+        dataSourceDeal(chroma, chromaDatalogParser, pathNeedDealmap, true, "chroma");
+        dataSourceDeal(t862, t862DatalogParser, pathNeedDealmap, true, "t862");
+        dataSourceDeal(v50, v50DatalogParser, pathNeedDealmap, true, "v50");
+        dataSourceDeal(v93000, v9300DatalogParser, pathNeedDealmap, true, "v93000");
+        dataSourceDeal(j750, j750DatalogParser, pathNeedDealmap, true, "j750");
         try {
-            proceedingJoinPoint.proceed(new Object[]{pathNeedDeal});
+            proceedingJoinPoint.proceed(new Object[]{pathNeedDealmap});
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -119,7 +118,8 @@ public class StdfDataSourceNeedDeal {
             }
         }
     }
-    public void dataSourceDeal(String path, DatalogFileNameParser parser, Set<String> pathNeedDeal, boolean flag) {
+
+    public void dataSourceDeal(String path, DatalogFileNameParser parser, Map<String, String> pathNeedDealmap, boolean flag, String type) {
         File dataSource = new File(path);
         File[] files = dataSource.listFiles();
         for (int i = 0; i < files.length; i++) {
@@ -158,7 +158,7 @@ public class StdfDataSourceNeedDeal {
                         FileUtils.copyFile(waferFile, new File(finBackupPath + "/" + finFileName));
                         FileUtils.forceDelete(waferFile);
                         if (flag && (finFileName.endsWith(".stdf") || finFileName.endsWith(".std"))) {
-                            pathNeedDeal.add(finBackupPath);
+                            pathNeedDealmap.put(finBackupPath, type);
                         }
                     }
                 } catch (Exception e) {
