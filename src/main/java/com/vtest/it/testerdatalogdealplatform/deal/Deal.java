@@ -3,8 +3,6 @@ package com.vtest.it.testerdatalogdealplatform.deal;
 import com.vtest.it.testerdatalogdealplatform.pojo.tester.TesterDatalogInformationBean;
 import com.vtest.it.testerdatalogdealplatform.services.parsedatalogtools.DatalogFileNameParser;
 import com.vtest.it.testerdatalogdealplatform.services.parsedatalogtools.impl.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,7 +14,6 @@ import java.util.Map;
 
 @Service
 public class Deal {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Deal.class);
     @Autowired
     private ChromaDatalogParser chromaDatalogParser;
     @Autowired
@@ -62,8 +59,6 @@ public class Deal {
                         String suffix = testerDatalogInformationBean.getSuffix();
                         String stdfTextPath = stdfTextpath + "/" + customCode + "/" + device + "/" + lot + "/" + cpStep + "/" + waferId;
                         String resultFileName = "VTEST_CP_" + customCode + "_" + device + "_" + lot + "_" + waferId + "_" + tester + "_" + prober + "_" + proberCard + "_" + cpStep + "_" + testStep + "_" + operator + "_" + testTime + "." + suffix + ".txt";
-                        LOGGER.error(stdfTextPath);
-                        LOGGER.error(resultFileName);
                         File directory = new File(stdfTextPath);
                         if (!directory.exists()) {
                             directory.mkdirs();
