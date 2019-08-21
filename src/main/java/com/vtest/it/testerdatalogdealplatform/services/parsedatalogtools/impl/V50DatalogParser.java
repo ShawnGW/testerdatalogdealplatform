@@ -24,9 +24,9 @@ public class V50DatalogParser implements DatalogFileNameParser {
             String tester = matcher.group(5);
             String prober = matcher.group(6);
             String proberCard = matcher.group(7);
-            String cpProcess = matcher.group(8);
-            String reTestTime = matcher.group(9);
-            String operator = matcher.group(10);
+            String cpProcess = matcher.group(9);
+            String reTestTime = matcher.group(10);
+            String operator = matcher.group(8);
             String testTime = matcher.group(11);
             String suffix = matcher.group(12);
             bean.setCustomCode(customerCode);

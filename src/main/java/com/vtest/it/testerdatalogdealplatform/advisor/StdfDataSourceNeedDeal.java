@@ -15,6 +15,8 @@ import org.apache.commons.io.FileUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -69,7 +71,7 @@ public class StdfDataSourceNeedDeal {
     private FileTimeCheck fileTimeCheck;
     @Autowired
     private FileNameRemoveDoubleUnderLine removeDoubleUnderLine;
-
+    private static final Logger logger = LoggerFactory.getLogger(StdfDataSourceNeedDeal.class);
     @Around("execution(* com.vtest.it.testerdatalogdealplatform.deal.Deal.datalogDeal(..))")
     public void backupAndGetNeedDealSources(ProceedingJoinPoint proceedingJoinPoint) {
         Map<String, String> pathNeedDealmap = new HashMap<>();
@@ -92,7 +94,9 @@ public class StdfDataSourceNeedDeal {
         }
     }
 
+
     public void unCompressZipFiles(String path) {
+        logger.error("uncompress :" + path);
         File source = new File(path);
         File[] files = source.listFiles();
         for (File file : files) {
