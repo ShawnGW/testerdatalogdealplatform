@@ -127,15 +127,19 @@ public class StdfDataSourceNeedDeal {
             if (fileTimeCheck.Check(waferFile) && fileNameCheck.check(waferFile) && !waferFile.getName().endsWith(".zip")) {
                 if (waferFile.getName().endsWith(".temp")) {
                     try {
-                        FileUtils.copyFile(waferFile, new File(errorPath + "/" + removeDoubleUnderLine.remove(waferFile.getName())));
-                        FileUtils.forceDelete(waferFile);
+                        if (fileTimeCheck.CheckLong(waferFile)) {
+                            FileUtils.copyFile(waferFile, new File(errorPath + "/" + removeDoubleUnderLine.remove(waferFile.getName())));
+                            FileUtils.forceDelete(waferFile);
+                        }
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     continue;
                 }
                 try {
-                    TesterDatalogInformationBean testerDatalogInformationBean = parser.getFileInformation(removeDoubleUnderLine.remove(waferFile.getName()));
+                    String fileNameAfterDeal = removeDoubleUnderLine.removeBrackets(removeDoubleUnderLine.remove(waferFile.getName()));
+                    TesterDatalogInformationBean testerDatalogInformationBean = parser.getFileInformation(fileNameAfterDeal);
                     String customerCode = testerDatalogInformationBean.getCustomCode();
                     String device = testerDatalogInformationBean.getDevice();
                     String lot = testerDatalogInformationBean.getLot();
@@ -143,7 +147,7 @@ public class StdfDataSourceNeedDeal {
                     String waferId = testerDatalogInformationBean.getWaferId();
                     SlotAndSequenceConfigBean slotAndSequenceConfigBean = mesDao.getLotSlotConfig(lot);
                     if (!waferFile.getName().endsWith(".temp")) {
-                        String finFileName = removeDoubleUnderLine.remove(waferFile.getName());
+                        String finFileName = fileNameAfterDeal;
                         if (slotAndSequenceConfigBean.getReadType().toUpperCase().equals("SLOT")) {
                             String slot = getSlot.get(waferId);
                             if (null == slot) {
@@ -152,7 +156,7 @@ public class StdfDataSourceNeedDeal {
                                 continue;
                             }
                             waferId = mesDao.getWaferIdBySlot(lot, slot);
-                            finFileName = waferId.equals("NA") ? removeDoubleUnderLine.remove(waferFile.getName()) : getRightFileName.getRightFileName(removeDoubleUnderLine.remove(waferFile.getName()), waferId);
+                            finFileName = waferId.equals("NA") ? fileNameAfterDeal : getRightFileName.getRightFileName(fileNameAfterDeal, waferId);
                         }
                         String finBackupPath = backupPath + "/" + customerCode + "/" + device + "/" + lot + "/" + cpProcess + "/" + waferId;
                         FileUtils.copyFile(waferFile, new File(finBackupPath + "/" + finFileName));

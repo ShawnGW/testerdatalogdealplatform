@@ -7,4 +7,8 @@ public class FileNameRemoveDoubleUnderLine {
     public String remove(String fileName){
         return  fileName.replaceAll("__","_");
     }
+
+    public String removeBrackets(String fileName) {
+        return fileName.replaceAll("\\(", "").replaceAll("\\)", "");
+    }
 }

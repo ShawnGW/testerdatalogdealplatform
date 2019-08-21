@@ -14,4 +14,13 @@ public class FileTimeCheck {
         }
         return true;
     }
+
+    public boolean CheckLong(File file) {
+        long now = System.currentTimeMillis();
+        long fileLastModifyTime = file.lastModified();
+        if (((now - fileLastModifyTime) / 1000) < 60 * 60) {
+            return false;
+        }
+        return true;
+    }
 }
