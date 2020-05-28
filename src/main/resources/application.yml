@@ -66,6 +66,7 @@ system:
       chroma: /server212/Datalog/TempData/Chroma
       v93000: /server212/Datalog/TempData/V93000
       t862: /server212/Datalog/TempData/T862
+      s200: /server212/Datalog/TempData/S200
       error-path: /server212/Datalog/ErrorData
       backup-path: /server212/Datalog/TesterData
       stdf-to-text-path: /stdfTxt

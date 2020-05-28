@@ -12,6 +12,11 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @author shawn.sun
+ * @date 2020/05/28 13:18:10
+ */
+
 @Service
 public class Deal {
     @Autowired
@@ -26,6 +31,8 @@ public class Deal {
     private V50DatalogParser v50DatalogParser;
     @Autowired
     private V9300DatalogParser v9300DatalogParser;
+    @Autowired
+    private S200DatalogParser s200DatalogParser;
     @Value("${system.properties.datalog.stdf-to-text-path}")
     private String stdfTextpath;
     private static final String STDFREADER = "/scripts/STDFreader ";
@@ -38,6 +45,7 @@ public class Deal {
         parserMap.put("v50", v50DatalogParser);
         parserMap.put("v93000", v9300DatalogParser);
         parserMap.put("j750", j750DatalogParser);
+        parserMap.put("s200", s200DatalogParser);
         for (String path : pathNeedDealmap.keySet()) {
             DatalogFileNameParser parser = parserMap.get(pathNeedDealmap.get(path));
             File[] stdfs = new File(path).listFiles();

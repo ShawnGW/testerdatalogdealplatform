@@ -24,7 +24,16 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
+
+/**
+ * @author shawn.sun
+ * @date 2020/05/28 13:18:10
+ */
+
 
 @Aspect
 @Component
@@ -37,6 +46,8 @@ public class StdfDataSourceNeedDeal {
     private String chroma;
     @Value("${system.properties.datalog.v50}")
     private String v50;
+    @Value("${system.properties.datalog.s200}")
+    private String s200;
     @Value("${system.properties.datalog.v93000}")
     private String v93000;
     @Value("${system.properties.datalog.j750}")
@@ -53,6 +64,8 @@ public class StdfDataSourceNeedDeal {
     private J750DatalogParser j750DatalogParser;
     @Autowired
     private M7000DatalogParser m7000DatalogParser;
+    @Autowired
+    private S200DatalogParser s200DatalogParser;
     @Autowired
     private T862DatalogParser t862DatalogParser;
     @Autowired
@@ -72,6 +85,7 @@ public class StdfDataSourceNeedDeal {
     @Autowired
     private FileNameRemoveDoubleUnderLine removeDoubleUnderLine;
     private static final Logger logger = LoggerFactory.getLogger(StdfDataSourceNeedDeal.class);
+
     @Around("execution(* com.vtest.it.testerdatalogdealplatform.deal.Deal.datalogDeal(..))")
     public void backupAndGetNeedDealSources(ProceedingJoinPoint proceedingJoinPoint) {
         Map<String, String> pathNeedDealmap = new HashMap<>();
@@ -81,12 +95,14 @@ public class StdfDataSourceNeedDeal {
         unCompressZipFiles(v50);
         unCompressZipFiles(v93000);
         unCompressZipFiles(j750);
+        unCompressZipFiles(s200);
         dataSourceDeal(m7000, m7000DatalogParser, pathNeedDealmap, true, "m7000");
         dataSourceDeal(chroma, chromaDatalogParser, pathNeedDealmap, true, "chroma");
         dataSourceDeal(t862, t862DatalogParser, pathNeedDealmap, true, "t862");
         dataSourceDeal(v50, v50DatalogParser, pathNeedDealmap, true, "v50");
         dataSourceDeal(v93000, v9300DatalogParser, pathNeedDealmap, true, "v93000");
         dataSourceDeal(j750, j750DatalogParser, pathNeedDealmap, true, "j750");
+        dataSourceDeal(s200, s200DatalogParser, pathNeedDealmap, true, "s200");
         try {
             proceedingJoinPoint.proceed(new Object[]{pathNeedDealmap});
         } catch (Throwable throwable) {
@@ -97,12 +113,26 @@ public class StdfDataSourceNeedDeal {
 
     public void unCompressZipFiles(String path) {
         logger.error("uncompress :" + path);
+        ExecutorService service = new ThreadPoolExecutor(10, 20, 100, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), new ThreadPoolExecutor.CallerRunsPolicy());
         File source = new File(path);
         File[] files = source.listFiles();
+        List<Future> list = new LinkedList<>();
         for (File file : files) {
             if (file.getName().endsWith(".zip") && fileTimeCheck.Check(file)) {
-                try {
+                Future<String> future = service.submit(() -> {
                     boolean flag = unCompress.unCompressFile(file);
+                    return flag + ":" + file.getPath();
+                });
+                list.add(future);
+            }
+        }
+        for (Future future : list) {
+            try {
+                String unCompressResult = (String) future.get();
+                String[] tokens = unCompressResult.split(":");
+                File file = new File(tokens[1]);
+                try {
+                    boolean flag = Boolean.valueOf(tokens[0]);
                     if (flag) {
                         FileUtils.copyFile(file, new File(errorPath + "/" + file.getName()));
                     }
@@ -119,8 +149,13 @@ public class StdfDataSourceNeedDeal {
                         e.printStackTrace();
                     }
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
             }
         }
+        service.shutdown();
     }
 
     public void dataSourceDeal(String path, DatalogFileNameParser parser, Map<String, String> pathNeedDealmap, boolean flag, String type) {
