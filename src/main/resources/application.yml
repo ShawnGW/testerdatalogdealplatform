@@ -60,6 +60,8 @@ spring:
 system:
   properties:
     datalog:
+      dx: /server212/Datalog/TempData/DX
+      cdcBackup: /server212/Datalog/TesterData/CDC/CDCTOCUS
       m7000: /server212/Datalog/TempData/M7000
       j750: /server212/Datalog/TempData/J750
       v50: /server212/Datalog/TempData/V50

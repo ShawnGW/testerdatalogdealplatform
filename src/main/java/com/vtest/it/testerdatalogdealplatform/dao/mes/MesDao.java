@@ -7,6 +7,10 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
+/**
+ * @author shawn.sun
+ * @date 2020-11-7 20:03:09
+ */
 @Mapper
 @Repository
 public interface MesDao {

@@ -1,5 +1,6 @@
 package com.vtest.it.testerdatalogdealplatform.advisor;
 
+import com.vtest.it.testerdatalogdealplatform.pojo.mes.MesConfigBean;
 import com.vtest.it.testerdatalogdealplatform.pojo.mes.SlotAndSequenceConfigBean;
 import com.vtest.it.testerdatalogdealplatform.pojo.tester.TesterDatalogInformationBean;
 import com.vtest.it.testerdatalogdealplatform.services.FileNamePerfect.impl.FileNameCheck;
@@ -23,10 +24,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -52,10 +50,14 @@ public class StdfDataSourceNeedDeal {
     private String v93000;
     @Value("${system.properties.datalog.j750}")
     private String j750;
+    @Value("${system.properties.datalog.dx}")
+    private String dx;
     @Value("${system.properties.datalog.error-path}")
     private String errorPath;
     @Value("${system.properties.datalog.backup-path}")
     private String backupPath;
+    @Value("${system.properties.datalog.cdcBackup}")
+    private String cdcBackup;
     @Autowired
     private FileNameCheck fileNameCheck;
     @Autowired
@@ -84,11 +86,13 @@ public class StdfDataSourceNeedDeal {
     private FileTimeCheck fileTimeCheck;
     @Autowired
     private FileNameRemoveDoubleUnderLine removeDoubleUnderLine;
+
     private static final Logger logger = LoggerFactory.getLogger(StdfDataSourceNeedDeal.class);
 
     @Around("execution(* com.vtest.it.testerdatalogdealplatform.deal.Deal.datalogDeal(..))")
     public void backupAndGetNeedDealSources(ProceedingJoinPoint proceedingJoinPoint) {
-        Map<String, String> pathNeedDealmap = new HashMap<>();
+        Map<String, String> pathNeedDealMap = new HashMap<>();
+        unCompressDxGzFiles(dx);
         unCompressZipFiles(m7000);
         unCompressZipFiles(chroma);
         unCompressZipFiles(t862);
@@ -96,20 +100,91 @@ public class StdfDataSourceNeedDeal {
         unCompressZipFiles(v93000);
         unCompressZipFiles(j750);
         unCompressZipFiles(s200);
-        dataSourceDeal(m7000, m7000DatalogParser, pathNeedDealmap, true, "m7000");
-        dataSourceDeal(chroma, chromaDatalogParser, pathNeedDealmap, true, "chroma");
-        dataSourceDeal(t862, t862DatalogParser, pathNeedDealmap, true, "t862");
-        dataSourceDeal(v50, v50DatalogParser, pathNeedDealmap, true, "v50");
-        dataSourceDeal(v93000, v9300DatalogParser, pathNeedDealmap, true, "v93000");
-        dataSourceDeal(j750, j750DatalogParser, pathNeedDealmap, true, "j750");
-        dataSourceDeal(s200, s200DatalogParser, pathNeedDealmap, true, "s200");
+        dataSourceDeal(m7000, m7000DatalogParser, pathNeedDealMap, true, "m7000");
+        dataSourceDeal(chroma, chromaDatalogParser, pathNeedDealMap, true, "chroma");
+        dataSourceDeal(t862, t862DatalogParser, pathNeedDealMap, true, "t862");
+        dataSourceDeal(v50, v50DatalogParser, pathNeedDealMap, true, "v50");
+        dataSourceDeal(v93000, v9300DatalogParser, pathNeedDealMap, true, "v93000");
+        dataSourceDeal(j750, j750DatalogParser, pathNeedDealMap, true, "j750");
+        dataSourceDeal(s200, s200DatalogParser, pathNeedDealMap, true, "s200");
         try {
-            proceedingJoinPoint.proceed(new Object[]{pathNeedDealmap});
+            proceedingJoinPoint.proceed(new Object[]{pathNeedDealMap});
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
     }
 
+    public void unCompressDxGzFiles(String path) {
+        ExecutorService service = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>(), new ThreadPoolExecutor.CallerRunsPolicy());
+        List<Future<String>> list = new LinkedList<>();
+        File[] files = new File(path).listFiles();
+        Queue<File> queue = new LinkedList<>(Arrays.asList(Objects.requireNonNull(files)));
+        while (!queue.isEmpty()) {
+            File gzFile = queue.poll();
+            String gzFileName = gzFile.getName();
+            Future<String> future = service.submit(new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    if (gzFileName.endsWith(".gz")) {
+                        boolean unGzipFlag = unCompress.unGzipFile(gzFile.getPath());
+                        if (unGzipFlag) {
+                            FileUtils.copyFile(gzFile, new File(cdcBackup + "/" + gzFileName));
+                            if (gzFile.length() == new File(cdcBackup + "/" + gzFileName).length()) {
+                                FileUtils.forceDelete(gzFile);
+                            }
+                        }
+                    } else if (gzFileName.endsWith(".std") || gzFileName.endsWith(".stdf")) {
+                        String[] tokens = gzFileName.split("_");
+                        String lot = tokens[8];
+                        String slot = tokens[10];
+                        String cpProcess = tokens[2];
+                        String waferIdBySlot = slot;
+                        if (slot.length() <= 2) {
+                            waferIdBySlot = mesDao.getWaferIdBySlot(lot, slot);
+                        }
+                        MesConfigBean waferConfigFromMes = mesDao.getWaferConfigFromMes(waferIdBySlot, cpProcess);
+                        String customerCode = waferConfigFromMes.getCustomerCode();
+                        String probe = waferConfigFromMes.getProberId();
+                        String probeCard = waferConfigFromMes.getProberCardId();
+                        String operator = waferConfigFromMes.getOperator();
+                        operator = operator.equals("NA") ? "V005" : operator;
+                        int rpProcess = Integer.parseInt(tokens[11].substring(1));
+                        String testTime1 = tokens[12].substring(0, 8);
+                        String testTime2 = tokens[12].substring(8, 14);
+                        String fileName = "VTEST_CP_" +
+                                customerCode + "_" +
+                                tokens[3] + "_" +
+                                lot + "_" +
+                                waferIdBySlot + "_" +
+                                tokens[1] + "_" +
+                                probe + "_" +
+                                probeCard + "_" +
+                                cpProcess + "_" +
+                                "RP" + (rpProcess - 1) + "_" +
+                                operator + "_" +
+                                testTime1 + "_" +
+                                testTime2 + ".stdf";
+                        File destFile = new File(j750 + "/" + fileName);
+                        FileUtils.copyFile(gzFile, destFile);
+                        if (gzFile.length() == destFile.length()) {
+                            FileUtils.forceDelete(gzFile);
+                        }
+                    }
+                    return "ok";
+                }
+            });
+            list.add(future);
+
+        }
+        list.forEach(e -> {
+            try {
+                e.get();
+            } catch (InterruptedException | ExecutionException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+        });
+        service.shutdown();
+    }
 
     public void unCompressZipFiles(String path) {
         logger.error("uncompress :" + path);
@@ -132,7 +207,7 @@ public class StdfDataSourceNeedDeal {
                 String[] tokens = unCompressResult.split(":");
                 File file = new File(tokens[1]);
                 try {
-                    boolean flag = Boolean.valueOf(tokens[0]);
+                    boolean flag = Boolean.parseBoolean(tokens[0]);
                     if (flag) {
                         FileUtils.copyFile(file, new File(errorPath + "/" + file.getName()));
                     }
@@ -158,7 +233,7 @@ public class StdfDataSourceNeedDeal {
         service.shutdown();
     }
 
-    public void dataSourceDeal(String path, DatalogFileNameParser parser, Map<String, String> pathNeedDealmap, boolean flag, String type) {
+    public void dataSourceDeal(String path, DatalogFileNameParser parser, Map<String, String> pathNeedDealMap, boolean flag, String type) {
         File dataSource = new File(path);
         File[] files = dataSource.listFiles();
         for (int i = 0; i < files.length; i++) {
@@ -201,7 +276,7 @@ public class StdfDataSourceNeedDeal {
                         FileUtils.copyFile(waferFile, new File(finBackupPath + "/" + finFileName));
                         FileUtils.forceDelete(waferFile);
                         if (flag && (finFileName.endsWith(".stdf") || finFileName.endsWith(".std"))) {
-                            pathNeedDealmap.put(finBackupPath, type);
+                            pathNeedDealMap.put(finBackupPath, type);
                         }
                     }
                 } catch (Exception e) {
