@@ -4,6 +4,17 @@ import com.vtest.it.testerdatalogdealplatform.pojo.tester.TesterDatalogInformati
 
 import java.text.ParseException;
 
+/**
+ * @author shawn.sun
+ * @date 2020-12-26 10:40:13
+ */
 public interface DatalogFileNameParser {
-    public abstract TesterDatalogInformationBean getFileInformation(String fileName) throws ParseException;
+    /**
+     * fetch file information
+     *
+     * @param fileName file name
+     * @return tester information bean
+     * @throws ParseException exception
+     */
+    TesterDatalogInformationBean getFileInformation(String fileName) throws ParseException;
 }

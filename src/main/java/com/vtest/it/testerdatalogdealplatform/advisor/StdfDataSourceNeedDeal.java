@@ -88,6 +88,7 @@ public class StdfDataSourceNeedDeal {
     private FileNameRemoveDoubleUnderLine removeDoubleUnderLine;
 
     private static final Logger logger = LoggerFactory.getLogger(StdfDataSourceNeedDeal.class);
+    private static final String STDFREADER = "/scripts/STDFreader ";
 
     @Around("execution(* com.vtest.it.testerdatalogdealplatform.deal.Deal.datalogDeal(..))")
     public void backupAndGetNeedDealSources(ProceedingJoinPoint proceedingJoinPoint) {
@@ -147,7 +148,7 @@ public class StdfDataSourceNeedDeal {
                         String probe = waferConfigFromMes.getProberId();
                         String probeCard = waferConfigFromMes.getProberCardId();
                         String operator = waferConfigFromMes.getOperator();
-                        operator = operator.equals("NA") ? "V005" : operator;
+                        operator = (operator == null || operator.equals("NA")) ? "V005" : operator;
                         int rpProcess = Integer.parseInt(tokens[11].substring(1));
                         String testTime1 = tokens[12].substring(0, 8);
                         String testTime2 = tokens[12].substring(8, 14);
@@ -165,6 +166,47 @@ public class StdfDataSourceNeedDeal {
                                 testTime1 + "_" +
                                 testTime2 + ".stdf";
                         File destFile = new File(j750 + "/" + fileName);
+                        String finalWaferIdBySlot = waferIdBySlot;
+
+
+                        try {
+                            File targetDirectory = new File("/server212/Datalog/TempData/cpRcsStdTxt/" + lot + "_" + waferIdBySlot + "_" + cpProcess);
+                            if (!targetDirectory.exists()) {
+                                targetDirectory.mkdirs();
+                            }
+                            File writting = new File(targetDirectory.getPath() + "/writting");
+                            if (!writting.exists()) {
+                                writting.createNewFile();
+                            }
+                            File[] stds = new File("/server212/Datalog/TesterData/" + customerCode + "/" + tokens[3] + "/" + lot + "/" + cpProcess + "/" + waferIdBySlot).listFiles();
+                            List<File> fileList = Arrays.asList(stds);
+                            fileList.add(gzFile);
+                            fileList.stream().filter(e -> {
+                                String fileNameTmp = e.getName();
+                                return fileNameTmp.endsWith(".std") || fileNameTmp.endsWith(".stdf");
+                            }).forEach(e -> {
+                                String fileNameTmp = e.getName();
+                                String[] fileNameTokens = fileNameTmp.split("_");
+                                String fileDate = fileNameTokens[fileNameTokens.length - 2];
+                                String fileTime = fileNameTokens[fileNameTokens.length - 1];
+                                String targetFileName = lot + "_" + finalWaferIdBySlot + "_" + cpProcess + "_" + fileDate + fileTime;
+                                if (e != gzFile) {
+                                    targetFileName = lot + "_" + finalWaferIdBySlot + "_" + cpProcess + "_" + fileTime.substring(0, 14);
+                                }
+                                File targetFile = new File(targetDirectory.getPath() + "/" + targetFileName);
+                                String cmd = STDFREADER + e + " >" + targetFile;
+                                try {
+                                    Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
+                                } catch (Exception exception) {
+                                    // TODO Auto-generated catch block
+                                    exception.printStackTrace();
+                                }
+                            });
+                            FileUtils.forceDelete(writting);
+                        } catch (Exception exception) {
+                            exception.printStackTrace();
+                        }
+
                         FileUtils.copyFile(gzFile, destFile);
                         if (gzFile.length() == destFile.length()) {
                             FileUtils.forceDelete(gzFile);
@@ -260,6 +302,7 @@ public class StdfDataSourceNeedDeal {
                     String cpProcess = testerDatalogInformationBean.getCpStep();
                     String waferId = testerDatalogInformationBean.getWaferId();
                     SlotAndSequenceConfigBean slotAndSequenceConfigBean = mesDao.getLotSlotConfig(lot);
+
                     if (!waferFile.getName().endsWith(".temp")) {
                         String finFileName = fileNameAfterDeal;
                         if (slotAndSequenceConfigBean.getReadType().toUpperCase().equals("SLOT")) {

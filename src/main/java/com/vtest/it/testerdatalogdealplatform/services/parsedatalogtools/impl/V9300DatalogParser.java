@@ -8,9 +8,12 @@ import org.springframework.stereotype.Service;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @author shawn.sun
+ */
 @Service
 public class V9300DatalogParser implements DatalogFileNameParser {
-    private Pattern pattern = Pattern.compile(DatalogRegexSamples.V93000REGEX);
+    private final Pattern pattern = Pattern.compile(DatalogRegexSamples.V93000REGEX);
 
     @Override
     public TesterDatalogInformationBean getFileInformation(String fileName) {

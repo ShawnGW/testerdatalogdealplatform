@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 @Service
 public class J750DatalogParser implements DatalogFileNameParser {
-    private Pattern pattern = Pattern.compile(DatalogRegexSamples.J750REGEX);
+    private final Pattern pattern = Pattern.compile(DatalogRegexSamples.J750REGEX);
 
     @Override
     public TesterDatalogInformationBean getFileInformation(String fileName) {
